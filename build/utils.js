@@ -30,7 +30,7 @@ exports.cssLoaders = function (options) {
   }
 
   // generate loader string to be used with extract text plugin
-  function generateLoaders (loader, loaderOptions) {
+  function generateLoaders(loader, loaderOptions) {
     const loaders = options.usePostCSS ? [cssLoader, postcssLoader] : [cssLoader]
 
     if (loader) {
@@ -59,7 +59,7 @@ exports.cssLoaders = function (options) {
     css: generateLoaders(),
     postcss: generateLoaders(),
     less: generateLoaders('less'),
-    sass: generateLoaders('sass', { indentedSyntax: true }),
+    sass: generateLoaders('sass', {indentedSyntax: true}),
     scss: generateLoaders('sass'),
     stylus: generateLoaders('stylus'),
     styl: generateLoaders('stylus')
@@ -98,4 +98,49 @@ exports.createNotifierCallback = () => {
       icon: path.join(__dirname, 'logo.png')
     })
   }
+}
+var glob = require("glob")
+var HtmlWebpackPlugin = require("html-webpack-plugin")
+var PAGE_PATH = path.resolve(__dirname, "../src/modules")
+var merge = require("webpack-merge")
+
+//多入口配置
+exports.entries = function () {
+  var entryFiles = glob.sync(PAGE_PATH + '/*/*.js')
+  var map = {}
+  entryFiles.forEach((filePath) => {
+    var filename = filePath.substring(filePath.lastIndexOf("\/") + 1, filePath.lastIndexOf("."))
+    map[filename] = filePath
+  })
+  return map
+}
+
+//多页面输出配置
+exports.htmlPlugin = function () {
+  let entryHtml = glob.sync(PAGE_PATH + '/*/*.html')
+  let arr = []
+  entryHtml.forEach((filePath) => {
+    let filename = filePath.substring(filePath.lastIndexOf('\/') + 1, filePath.lastIndexOf('.'))
+    let conf = {
+      // 模板来源
+      template: filePath,
+      // 文件名称
+      filename: filename + '.html',
+      // 页面模板需要加对应的js脚本，如果不加这行则每个页面都会引入所有的js脚本
+      chunks: ['manifest', 'vendor', filename],
+      inject: true
+    }
+    if (process.env.NODE_ENV === 'production') {
+      conf = merge(conf, {
+        minify: {
+          removeComments: true,
+          collapseWhitespace: true,
+          removeAttributeQuotes: true
+        },
+        chunksSortMode: 'dependency'
+      })
+    }
+    arr.push(new HtmlWebpackPlugin(conf))
+  })
+  return arr
 }
