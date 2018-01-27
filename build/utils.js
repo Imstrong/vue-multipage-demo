@@ -30,7 +30,7 @@ exports.cssLoaders = function (options) {
   }
 
   // generate loader string to be used with extract text plugin
-  function generateLoaders (loader, loaderOptions) {
+  function generateLoaders(loader, loaderOptions) {
     const loaders = options.usePostCSS ? [cssLoader, postcssLoader] : [cssLoader]
 
     if (loader) {
@@ -59,7 +59,7 @@ exports.cssLoaders = function (options) {
     css: generateLoaders(),
     postcss: generateLoaders(),
     less: generateLoaders('less'),
-    sass: generateLoaders('sass', { indentedSyntax: true }),
+    sass: generateLoaders('sass', {indentedSyntax: true}),
     scss: generateLoaders('sass'),
     stylus: generateLoaders('stylus'),
     styl: generateLoaders('stylus')
@@ -98,4 +98,45 @@ exports.createNotifierCallback = () => {
       icon: path.join(__dirname, 'logo.png')
     })
   }
+}
+
+//引入glob,htmlWebpackPlugin,webpack-merge,定义PAGE_PATH
+var glob = require('glob')
+var htmlWebpackPlugin = require('html-webpack-plugin')
+var PAGE_PATH = path.resolve(__dirname, '../src/pages')
+var merge = require('webpack-merge')
+
+exports.entries = function () {
+  var entryFiles = glob.sync(PAGE_PATH + '/*/*.js')
+  var map = {}
+  entryFiles.forEach((entryFile) => {
+    var fileName = entryFile.substring(entryFile.lastIndexOf('\/') + 1, entryFile.lastIndexOf('.'))
+    map[fileName] = entryFile
+  })
+  return map
+}
+exports.htmlPlugin=function(){
+  let entryHtml=glob.sync(PAGE_PATH+'/*/*.html')
+  let arr=[]
+  entryHtml.forEach((filePath)=>{
+    let filename=filePath.substring(filePath.lastIndexOf('\/')+1,filePath.lastIndexOf('.'))
+    let conf={
+      template:filePath,
+      filename:filename+'.tpl',
+      chunks:['manifest','vendor',filename],
+      inject:true
+    }
+    if (process.env.NODE_ENV === 'production') {
+      conf = merge(conf, {
+        minify: {
+          removeComments: true,
+          collapseWhitespace: true,
+          removeAttributeQuotes: true
+        },
+        chunksSortMode: 'dependency'
+      })
+    }
+    arr.push(new htmlWebpackPlugin(conf))
+  })
+  return arr
 }
